@@ -47,7 +47,7 @@ button.x{background:none;color:var(--mu);padding:6px}
 <header><b>💶 Mis finanzas</b><small id="st">…</small><button class="x" onclick="manualSave()">💾</button><button class="x" id="th" onclick="theme()">☀️</button></header>
 <div id="app"></div>
 </main>
-<div class="tabs"><button id="t0" onclick="setTab('res')">Resumen</button><button id="t1" onclick="setTab('rep')">Reparto</button><button id="t2" onclick="setTab('nom')">Nómina</button></div>
+<div class="tabs"><button id="t0" onclick="setTab('res')">Resumen</button><button id="t1" onclick="setTab('rep')">Reparto</button><button id="t2" onclick="setTab('nom')">Nómina</button><button id="t3" onclick="setTab('adj')">⚙️</button></div>
 <script>
 const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -119,7 +119,7 @@ function chart(){
   s+=`<text x="${21.5+m*27}" y="136" font-size="9" text-anchor="middle" fill="var(--mu)">${M[m][0]}</text>`}
  return s+'</svg><div style="font-size:12px;color:var(--mu);text-align:right">Máx. mes: '+eur(mx)+'</div>'}
 function render(){
- ['res','rep','nom'].forEach((t,i)=>document.getElementById('t'+i).className=tab===t?'on':'');
+ ['res','rep','nom','adj'].forEach((t,i)=>document.getElementById('t'+i).className=tab===t?'on':'');
  let h='';
  if(tab==='res'){
   const A=S.products.map(p=>({p,...agg(p)})),IN=A.filter(x=>!S.excl[x.p]),cap=IN.reduce((a,x)=>a+x.cur,0),yy=IN.reduce((a,x)=>a+x.yy,0),ny=nomYear(),ing=ny.n;
