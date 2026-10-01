@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finanzas</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f1a">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+:root{--bg:#0b0f1a;--card:#141a2b;--tx:#eef1f8;--mu:#8b95b0;--bd:#232b42;--ac:#22d3ee;--ng:#fb923c;--ok:#34d399;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="light"]{--bg:#eef1f8;--card:#fff;--tx:#141a2b;--mu:#5d6785;--bd:#dde2ef;--ac:#0891b2;--ng:#c2410c;--ok:#059669}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:6px 14px 96px}
+header{display:flex;align-items:center;gap:8px;padding:10px 0}
+header b{flex:1;font-size:19px}header small{color:var(--mu);font-size:12px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);margin:20px 4px 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:6px 14px;margin-bottom:10px}
+.hero{background:linear-gradient(135deg,#0ea5e9,#7c3aed 60%,#db2777);color:#fff;border:0;padding:16px}
+.hero small{opacity:.85}.hero .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
+.hero .sub{display:flex;justify-content:space-between;margin-top:10px;font-size:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border-bottom:0}.row>span{color:var(--mu);flex:1}.row b{font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.neg{color:var(--ng)}.pos{color:var(--ok)}
+input{width:110px;padding:8px 10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;text-align:right}
+.add input{flex:1;width:auto;text-align:left}
+button{font:inherit;border:0;border-radius:10px;padding:8px 12px;background:var(--ac);color:#04121a;font-weight:600;cursor:pointer}
+button.x{background:none;color:var(--mu);padding:6px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.nav b{font-size:20px}.nav button{background:var(--card);color:var(--tx);border:1px solid var(--bd);width:42px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{flex:1;background:none;color:var(--mu);border-radius:0;padding:14px 0;font-weight:500}
+.tabs button.on{color:var(--ac);font-weight:700}
+.g{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)}
+.g:last-child{border-bottom:0}.g input{width:100%}.g.h{color:var(--mu);font-size:12px}
+.bar{height:12px;border-radius:8px;background:var(--bd);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 6px;font-size:13px;color:var(--mu)}
+.pg{padding:10px 0;border-bottom:1px solid var(--bd)}.pg:last-child{border-bottom:0}
+.pg div.t{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+</style></head><body>
+<main>
+<header><b>💶 Mis finanzas</b><small id="st">…</small><button class="x" onclick="manualSave()">💾</button><button class="x" id="th" onclick="theme()">☀️</button></header>
+<div id="app"></div>
+</main>
+<div class="tabs"><button id="t0" onclick="setTab('res')">Resumen</button><button id="t1" onclick="setTab('rep')">Reparto</button><button id="t2" onclick="setTab('nom')">Nómina</button></div>
+<script>
+const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const COL=['#22d3ee','#a78bfa','#34d399','#fbbf24','#f472b6','#60a5fa','#fb923c'];
+const N1='MyInvestor · Cuenta remunerada',N2='MyInvestor · Depósito 3%';
+let S={products:['Trade Republic',N1,N2,'Cartera metal'],rep:{},nom:{},val:{},goal:{},excl:{}};
+const now=new Date();let Y=now.getFullYear(),Mo=now.getMonth(),tab='res',doc=null,tm;
+const key=(y,m)=>y+'-'+String(m+1).padStart(2,'0');
+const eur=n=>(n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+const num=v=>parseFloat(String(v).replace(',','.'))||0;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const col=p=>COL[Math.max(0,S.products.indexOf(p))%COL.length];
+const st=t=>{document.getElementById('st').textContent=t};
+function norm(){
+ S.excl=S.excl||{};
+ if(!S.g4){S.excl['Cartera metal']=true;S.g4=1}
+ if(!S.products.includes(N1)){const j=S.products.indexOf('Trade Republic');S.products.splice(j>=0?j+1:0,0,N1)}
+ if(!S.products.includes(N2)){const j=S.products.indexOf(N1);S.products.splice(j>=0?j+1:0,0,N2)}
+ const a='MyInvestor',i=S.products.indexOf(a);
+ if(i>=0){S.products.splice(i,1,N1,N2);for(const q in S.rep)if(S.rep[q][a]!=null){S.rep[q][N1]=S.rep[q][a];delete S.rep[q][a]}
+  if(S.val[a]!=null){S.val[N1]=S.val[a];delete S.val[a]}}
+ S.goal=S.goal||{};if(!S.g3){S.goal['Trade Republic']=0;S.goalT=50000;S.g3=1}}
+function save(){let ok=true;try{localStorage.setItem('fin',JSON.stringify(S))}catch(e){ok=false}
+ if(!doc){st(ok?'📱 Guardado en este dispositivo':'⚠️ No se pudo guardar (revisa modo privado)');return}
+ st('Guardando…');clearTimeout(tm);
+ tm=setTimeout(()=>doc.set(JSON.parse(JSON.stringify(S))).then(()=>st('☁️ Guardado'),()=>st('📱 Guardado en este dispositivo')),500)}
+function manualSave(){save();if(doc)st('Guardando…')}
+function theme(){const r=document.documentElement,d=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=d;
+ document.getElementById('th').textContent=d==='dark'?'☀️':'🌙';try{localStorage.setItem('fin_theme',d)}catch(e){}}
+async function init(){
+ try{const t=localStorage.getItem('fin_theme');if(t==='light')theme()}catch(e){}
+ try{const l=localStorage.getItem('fin');if(l)S=Object.assign(S,JSON.parse(l))}catch(e){}
+ norm();render();
+ try{localStorage.setItem('fin_check','1');st(localStorage.getItem('fin_check')==='1'?'📱 Guardado en este dispositivo':'⚠️ Este navegador no guarda datos (modo privado?)')}catch(e){st('⚠️ Este navegador no guarda datos (modo privado?)')}
+ try{if(window.claude){dl=await claude.use('downloads');if(dl)render()}}catch(e){}
+ try{if(!window.claude)return;const u=await claude.use('user'),db=await claude.use('db');
+  if(u&&db){const id=await u.id();if(id){doc=db.doc('data/users/'+id+'/finanzas');
+   const s=await doc.get();if(s.exists){S=Object.assign(S,s.data());norm();render();try{localStorage.setItem('fin',JSON.stringify(S))}catch(e){}st('☁️ Guardado')}else save()}}}catch(e){}
+}
+let dl=null;
+const msg=t=>{const e=document.getElementById('bm');if(e)e.textContent=t};
+const dump=()=>JSON.stringify(S,null,1);
+async function expo(){if(!dl){try{const u=URL.createObjectURL(new Blob([dump()],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='finanzas-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(l);l.click();l.remove();msg('Copia lista ✓')}catch(e){msg('No se pudo guardar el archivo: usa "Copiar datos"')}return}try{await dl.save({filename:'finanzas-'+new Date().toISOString().slice(0,10)+'.json',data:dump()});msg('Copia lista ✓')}catch(e){msg(e&&e.code==='declined'?'Cancelado':'No se pudo guardar el archivo: usa "Copiar datos"')}}
+function show(){const t=document.getElementById('bk');t.value=dump();t.select();try{navigator.clipboard.writeText(t.value).then(()=>msg('Copiado ✓'),()=>msg('Selecciona y copia el texto'))}catch(e){msg('Selecciona y copia el texto')}}
+function imp(){try{const o=JSON.parse(document.getElementById('bk').value);if(!Array.isArray(o.products)||!o.rep||!o.nom)throw 0;S={products:[],rep:{},nom:{},val:{},goal:{}};Object.assign(S,o);norm();save();render();msg('Importado ✓')}catch(e){msg('Ese texto no es una copia válida')}}
+function impFile(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById('bk').value=r.result;msg('Archivo cargado: pulsa Importar')};r.readAsText(f)}
+function setTab(t){tab=t;render()}
+function mv(d){Mo+=d;if(Mo<0){Mo=11;Y--}if(Mo>11){Mo=0;Y++}render()}
+function yr(d){Y+=d;render()}
+function setRep(i,v){const k=key(Y,Mo);S.rep[k]=S.rep[k]||{};S.rep[k][S.products[i]]=num(v);save();render()}
+function setVal(i,v){S.val[S.products[i]]=num(v);save();render()}
+function setGT(v){S.goalT=num(v);save();render()}
+function setExcl(i,ch){S.excl[S.products[i]]=!ch;save();render()}
+function setGoal(i,v){S.goal[S.products[i]]=num(v);save();render()}
+function setNom(k,f,v){S.nom[k]=S.nom[k]||{};S.nom[k][f]=num(v);save();render()}
+function addP(){const v=document.getElementById('np').value.trim();if(v&&!S.products.includes(v)){S.products.push(v);save();render()}}
+function delP(i){S.products.splice(i,1);save();render()}
+const nav=(t,a,b)=>`<div class="nav"><button onclick="${a}">‹</button><b>${t}</b><button onclick="${b}">›</button></div>`;
+function agg(p){let all=0,yy=0;for(const q in S.rep){const v=S.rep[q][p]||0;all+=v;if(q.startsWith(Y+'-'))yy+=v}
+ const val=S.val[p]||0;return{all,yy,val,cur:val||all}}
+function nomYear(){let n=0,c=0;for(let m=0;m<12;m++){const x=S.nom[key(Y,m)]||{};n+=x.n||0;if(x.n)c++}return{n,c}}
+function gastosYear(){let tot=0,c=0;for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k];if(!x||!x.n)continue;const disp=x.n||0,rep=S.products.reduce((a,p)=>a+((S.rep[k]||{})[p]||0),0);tot+=Math.max(0,disp-rep);c++}return{tot,media:c?tot/c:0,c}}
+function chart(){
+ const tot=m=>S.products.reduce((a,p)=>a+((S.rep[key(Y,m)]||{})[p]||0),0);
+ const mx=Math.max(1,...Array.from({length:12},(_,m)=>tot(m)));
+ let s='<svg viewBox="0 0 340 145" width="100%">';
+ for(let m=0;m<12;m++){let y=120;const r=S.rep[key(Y,m)]||{};
+  S.products.forEach(p=>{const h=(r[p]||0)/mx*105;if(h>0){y-=h;s+=`<rect x="${12+m*27}" y="${y}" width="19" height="${h}" rx="3" fill="${col(p)}"/>`}});
+  s+=`<text x="${21.5+m*27}" y="136" font-size="9" text-anchor="middle" fill="var(--mu)">${M[m][0]}</text>`}
+ return s+'</svg><div style="font-size:12px;color:var(--mu);text-align:right">Máx. mes: '+eur(mx)+'</div>'}
+function render(){
+ ['res','rep','nom'].forEach((t,i)=>document.getElementById('t'+i).className=tab===t?'on':'');
+ let h='';
+ if(tab==='res'){
+  const A=S.products.map(p=>({p,...agg(p)})),IN=A.filter(x=>!S.excl[x.p]),cap=IN.reduce((a,x)=>a+x.cur,0),yy=IN.reduce((a,x)=>a+x.yy,0),ny=nomYear(),ing=ny.n;
+  h+=nav(Y,'yr(-1)','yr(1)');
+  h+=`<div class="card hero"><small>Capital total</small><div class="big">${eur(cap)}</div><div class="sub"><span>Aportado en ${Y}: <b>${eur(yy)}</b></span><span>Ahorro: <b>${ing?(yy/ing*100).toFixed(0):0}%</b></span></div></div>`;
+  h+='<h2>Dónde está tu dinero</h2><div class="card" style="padding:14px"><div class="bar">'+IN.map(x=>`<i style="width:${cap?x.cur/cap*100:0}%;background:${col(x.p)}"></i>`).join('')+'</div><div class="leg">'+IN.map(x=>`<span><span class="dot" style="background:${col(x.p)}"></span>${esc(x.p)} ${cap?(x.cur/cap*100).toFixed(0):0}%</span>`).join('')+'</div>'+(A.length>IN.length?`<div style="font-size:12px;color:var(--mu);margin-top:8px">No incluye: ${A.filter(x=>S.excl[x.p]).map(x=>esc(x.p)).join(', ')}</div>`:'')+'</div>';
+  h+='<h2>Aportaciones por mes, '+Y+'</h2><div class="card" style="padding:12px">'+chart()+'</div>';
+  const gy=gastosYear();h+=`<h2>Gastos ordinarios</h2><div class="card"><div class="row"><span>Media mensual estimada</span><b>${eur(gy.media)}</b></div><div class="row"><span>Total estimado en ${Y}</span><b>${eur(gy.tot)}</b></div></div>`;
+  const G=A.filter(x=>S.goal[x.p]>0);
+  const gt=S.goalT||0,pt=gt?Math.min(100,cap/gt*100):0;
+  h+=`<h2>Objetivo</h2><div class="card">`+(gt?`<div class="pg"><div class="t"><span>Capital total</span><b>${eur(cap)} / ${eur(gt)}</b></div><div class="bar"><i style="width:${pt}%;background:linear-gradient(90deg,#22d3ee,#a78bfa,#f472b6)"></i></div><div style="font-size:12px;color:var(--mu);margin-top:4px">${pt.toFixed(0)}% · faltan ${eur(Math.max(0,gt-cap))}</div></div>`:'')+`<div class="row"><span>Mi objetivo</span><input inputmode="decimal" placeholder="0" value="${gt||''}" onchange="setGT(this.value)"></div></div>`;
+  if(G.length)h+='<h2>Objetivos por producto</h2><div class="card">'+G.map(x=>{const g=S.goal[x.p],pc=Math.min(100,x.cur/g*100);return `<div class="pg"><div class="t"><span><span class="dot" style="background:${col(x.p)}"></span>${esc(x.p)}</span><b>${eur(x.cur)} / ${eur(g)}</b></div><div class="bar"><i style="width:${pc}%;background:${col(x.p)}"></i></div><div style="font-size:12px;color:var(--mu);margin-top:4px">${pc.toFixed(0)}% · faltan ${eur(Math.max(0,g-x.cur))}</div></div>`}).join('')+'</div>';
+ }else if(tab==='rep'){
+  const k=key(Y,Mo),r=S.rep[k]||{},nm=S.nom[k]||{},disp=nm.n||0;
+  const tot=S.products.reduce((a,p)=>a+(r[p]||0),0),dif=disp-tot;
+  h+=nav(MF[Mo]+' '+Y,'mv(-1)','mv(1)');
+  h+=`<div class="card"><div class="row"><span>Nómina neta (+extra) del mes</span><b>${eur(disp)}</b></div><div class="row"><span>Repartido</span><b>${eur(tot)}</b></div><div class="row"><span>Gasto ordinario estimado</span><b class="${dif<0?'neg':'pos'}">${eur(dif)}</b></div></div>`;
+  h+='<h2>Reparto de este mes</h2><div class="card">'+S.products.map((p,i)=>`<div class="row"><span><span class="dot" style="background:${col(p)}"></span>${esc(p)}</span><input inputmode="decimal" placeholder="0" value="${r[p]||''}" onchange="setRep(${i},this.value)"><button class="x" onclick="delP(${i})">✕</button></div>`).join('')+`<div class="row add"><input id="np" placeholder="Nuevo producto"><button onclick="addP()">Añadir</button></div></div>`;
+  h+='<h2>Control por producto</h2>'+S.products.map((p,i)=>{const a=agg(p),g=a.val-a.all;
+   return `<div class="card" style="border-left:5px solid ${col(p)}"><div class="row"><b>${esc(p)}</b></div><div class="row"><span>Contar en capital total</span><input type="checkbox" style="width:auto" ${S.excl[p]?'':'checked'} onchange="setExcl(${i},this.checked)"></div><div class="row"><span>Aportado en total</span><b>${eur(a.all)}</b></div><div class="row"><span>Aportado en ${Y}</span><b>${eur(a.yy)}</b></div><div class="row"><span>Valor actual</span><input inputmode="decimal" placeholder="0" value="${a.val||''}" onchange="setVal(${i},this.value)"></div>`+(a.val?`<div class="row"><span>Ganancia</span><b class="${g<0?'neg':'pos'}">${eur(g)}${a.all?' ('+(g/a.all*100).toFixed(1).replace('.',',')+'%)':''}</b></div>`:'')+`<div class="row"><span>Objetivo</span><input inputmode="decimal" placeholder="0" value="${S.goal[p]||''}" onchange="setGoal(${i},this.value)"></div></div>`}).join('');
+ }else if(tab==='nom'){
+  const ny=nomYear();
+  h+=nav(Y,'yr(-1)','yr(1)');
+  h+=`<div class="card hero"><small>Total ganado en ${Y}</small><div class="big">${eur(ny.n)}</div></div>`;
+  h+=`<div class="card"><div class="row"><span>Media mensual (sin extras)</span><b>${eur(ny.c?ny.n/ny.c:0)}</b></div></div>`;
+  h+='<h2>Mes a mes</h2><div class="card"><div class="g h"><span></span><span>Neto</span></div>';
+  for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k]||{};
+   h+=`<div class="g"><b>${M[m]}</b><input inputmode="decimal" placeholder="0" value="${x.n||''}" onchange="setNom('${k}','n',this.value)"></div>`}
+  h+='</div>';
+ }else{
+  h+=`<h2>Copia de seguridad</h2><div class="card" style="padding:14px">`+`<button style="margin:0 8px 8px 0" onclick="expo()">⬇️ Exportar (.json)</button>`+`<button style="margin:0 0 8px" onclick="show()">📋 Copiar datos</button><textarea id="bk" rows="4" placeholder="Para restaurar: pega aquí el texto de tu copia y pulsa Importar" style="width:100%;margin:6px 0 10px;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:12px monospace"></textarea><input type="file" accept=".json,application/json" onchange="impFile(this)" style="width:100%;text-align:left;margin-bottom:10px"><button onclick="imp()">Importar (reemplaza lo actual)</button><div id="bm" style="font-size:13px;color:var(--mu);margin-top:8px"></div></div>`;
+  h+=`<h2>Apariencia</h2><div class="card"><div class="row"><span>Tema</span><button onclick="theme()">Cambiar claro/oscuro</button></div></div>`;
+ }
+ document.getElementById('app').innerHTML=h;
+}
+init();
+</script></body></html>
