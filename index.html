@@ -53,7 +53,7 @@ const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'
 const MF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const COL=['#22d3ee','#a78bfa','#34d399','#fbbf24','#f472b6','#60a5fa','#fb923c'];
 const N1='MyInvestor · Cuenta remunerada',N2='MyInvestor · Depósito 3%';
-let S={products:['Trade Republic',N1,N2,'Cartera metal'],rep:{},nom:{},val:{},goal:{},excl:{}};
+let S={products:['Trade Republic',N1,N2,'Cartera metal'],rep:{},nom:{},val:{},goal:{},excl:{},init:{}};
 const now=new Date();let Y=now.getFullYear(),Mo=now.getMonth(),tab='res',doc=null,tm;
 const key=(y,m)=>y+'-'+String(m+1).padStart(2,'0');
 const eur=n=>(n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
@@ -101,13 +101,14 @@ function setRep(i,v){const k=key(Y,Mo);S.rep[k]=S.rep[k]||{};S.rep[k][S.products
 function setVal(i,v){S.val[S.products[i]]=num(v);save();render()}
 function setGT(v){S.goalT=num(v);save();render()}
 function setExcl(i,ch){S.excl[S.products[i]]=!ch;save();render()}
+function setInit(i,v){S.init[S.products[i]]=num(v);save();render()}
 function setGoal(i,v){S.goal[S.products[i]]=num(v);save();render()}
 function setNom(k,f,v){S.nom[k]=S.nom[k]||{};S.nom[k][f]=num(v);save();render()}
 function addP(){const v=document.getElementById('np').value.trim();if(v&&!S.products.includes(v)){S.products.push(v);save();render()}}
 function delP(i){S.products.splice(i,1);save();render()}
 const nav=(t,a,b)=>`<div class="nav"><button onclick="${a}">‹</button><b>${t}</b><button onclick="${b}">›</button></div>`;
-function agg(p){let all=0,yy=0;for(const q in S.rep){const v=S.rep[q][p]||0;all+=v;if(q.startsWith(Y+'-'))yy+=v}
- const val=S.val[p]||0;return{all,yy,val,cur:val||all}}
+function agg(p){let put=0,yy=0;for(const q in S.rep){const v=S.rep[q][p]||0;put+=v;if(q.startsWith(Y+'-'))yy+=v}
+ const ini=S.init[p]||0,all=put+ini,val=S.val[p]||0;return{all,yy,val,ini,cur:val||all}}
 function nomYear(){let n=0,c=0;for(let m=0;m<12;m++){const x=S.nom[key(Y,m)]||{};n+=x.n||0;if(x.n)c++}return{n,c}}
 function gastosYear(){let tot=0,c=0;for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k];if(!x||!x.n)continue;const disp=x.n||0,rep=S.products.reduce((a,p)=>a+((S.rep[k]||{})[p]||0),0);tot+=Math.max(0,disp-rep);c++}return{tot,media:c?tot/c:0,c}}
 function chart(){
@@ -139,7 +140,7 @@ function render(){
   h+=`<div class="card"><div class="row"><span>Nómina neta (+extra) del mes</span><b>${eur(disp)}</b></div><div class="row"><span>Repartido</span><b>${eur(tot)}</b></div><div class="row"><span>Gasto ordinario estimado</span><b class="${dif<0?'neg':'pos'}">${eur(dif)}</b></div></div>`;
   h+='<h2>Reparto de este mes</h2><div class="card">'+S.products.map((p,i)=>`<div class="row"><span><span class="dot" style="background:${col(p)}"></span>${esc(p)}</span><input inputmode="decimal" placeholder="0" value="${r[p]||''}" onchange="setRep(${i},this.value)"><button class="x" onclick="delP(${i})">✕</button></div>`).join('')+`<div class="row add"><input id="np" placeholder="Nuevo producto"><button onclick="addP()">Añadir</button></div></div>`;
   h+='<h2>Control por producto</h2>'+S.products.map((p,i)=>{const a=agg(p),g=a.val-a.all;
-   return `<div class="card" style="border-left:5px solid ${col(p)}"><div class="row"><b>${esc(p)}</b></div><div class="row"><span>Contar en capital total</span><input type="checkbox" style="width:auto" ${S.excl[p]?'':'checked'} onchange="setExcl(${i},this.checked)"></div><div class="row"><span>Aportado en total</span><b>${eur(a.all)}</b></div><div class="row"><span>Aportado en ${Y}</span><b>${eur(a.yy)}</b></div><div class="row"><span>Valor actual</span><input inputmode="decimal" placeholder="0" value="${a.val||''}" onchange="setVal(${i},this.value)"></div>`+(a.val?`<div class="row"><span>Ganancia</span><b class="${g<0?'neg':'pos'}">${eur(g)}${a.all?' ('+(g/a.all*100).toFixed(1).replace('.',',')+'%)':''}</b></div>`:'')+`<div class="row"><span>Objetivo</span><input inputmode="decimal" placeholder="0" value="${S.goal[p]||''}" onchange="setGoal(${i},this.value)"></div></div>`}).join('');
+   return `<div class="card" style="border-left:5px solid ${col(p)}"><div class="row"><b>${esc(p)}</b></div><div class="row"><span>Contar en capital total</span><input type="checkbox" style="width:auto" ${S.excl[p]?'':'checked'} onchange="setExcl(${i},this.checked)"></div><div class="row"><span>Saldo inicial (antes de la app)</span><input inputmode="decimal" placeholder="0" value="${a.ini||''}" onchange="setInit(${i},this.value)"></div><div class="row"><span>Aportado en total</span><b>${eur(a.all)}</b></div><div class="row"><span>Aportado en ${Y}</span><b>${eur(a.yy)}</b></div><div class="row"><span>Valor actual</span><input inputmode="decimal" placeholder="0" value="${a.val||''}" onchange="setVal(${i},this.value)"></div>`+(a.val?`<div class="row"><span>Ganancia</span><b class="${g<0?'neg':'pos'}">${eur(g)}${a.all?' ('+(g/a.all*100).toFixed(1).replace('.',',')+'%)':''}</b></div>`:'')+`<div class="row"><span>Objetivo</span><input inputmode="decimal" placeholder="0" value="${S.goal[p]||''}" onchange="setGoal(${i},this.value)"></div></div>`}).join('');
  }else if(tab==='nom'){
   const ny=nomYear();
   h+=nav(Y,'yr(-1)','yr(1)');
