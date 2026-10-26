@@ -84,4 +84,82 @@ async function init(){
  try{const l=localStorage.getItem('fin');if(l)S=Object.assign(S,JSON.parse(l))}catch(e){}
  norm();render();
  try{localStorage.setItem('fin_check','1');st(localStorage.getItem('fin_check')==='1'?'📱 Guardado en este dispositivo':'⚠️ Este navegador no guarda datos (modo privado?)')}catch(e){st('⚠️ Este navegador no guarda datos (modo privado?)')}
- try{if(window.claude){dl=await claude.use
+ try{if(window.claude){dl=await claude.use('downloads');if(dl)render()}}catch(e){}
+ try{if(!window.claude)return;const u=await claude.use('user'),db=await claude.use('db');
+  if(u&&db){const id=await u.id();if(id){doc=db.doc('data/users/'+id+'/finanzas');
+   const s=await doc.get();if(s.exists){S=Object.assign(S,s.data());norm();render();try{localStorage.setItem('fin',JSON.stringify(S))}catch(e){}st('☁️ Guardado')}else save()}}}catch(e){}
+}
+let dl=null;
+const msg=t=>{const e=document.getElementById('bm');if(e)e.textContent=t};
+const dump=()=>JSON.stringify(S,null,1);
+async function expo(){if(!dl){try{const u=URL.createObjectURL(new Blob([dump()],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='finanzas-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(l);l.click();l.remove();msg('Copia lista ✓')}catch(e){msg('No se pudo guardar el archivo: usa "Copiar datos"')}return}try{await dl.save({filename:'finanzas-'+new Date().toISOString().slice(0,10)+'.json',data:dump()});msg('Copia lista ✓')}catch(e){msg(e&&e.code==='declined'?'Cancelado':'No se pudo guardar el archivo: usa "Copiar datos"')}}
+function show(){const t=document.getElementById('bk');t.value=dump();t.select();try{navigator.clipboard.writeText(t.value).then(()=>msg('Copiado ✓'),()=>msg('Selecciona y copia el texto'))}catch(e){msg('Selecciona y copia el texto')}}
+function imp(){try{const o=JSON.parse(document.getElementById('bk').value);if(!Array.isArray(o.products)||!o.rep||!o.nom)throw 0;S={products:[],rep:{},nom:{},val:{},goal:{}};Object.assign(S,o);norm();save();render();msg('Importado ✓')}catch(e){msg('Ese texto no es una copia válida')}}
+function impFile(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById('bk').value=r.result;msg('Archivo cargado: pulsa Importar')};r.readAsText(f)}
+function setTab(t){tab=t;render()}
+function mv(d){Mo+=d;if(Mo<0){Mo=11;Y--}if(Mo>11){Mo=0;Y++}render()}
+function yr(d){Y+=d;render()}
+function setRep(i,v){const k=key(Y,Mo);S.rep[k]=S.rep[k]||{};S.rep[k][S.products[i]]=num(v);save();render()}
+function setVal(i,v){S.val[S.products[i]]=num(v);save();render()}
+function setGT(v){S.goalT=num(v);save();render()}
+function setExcl(i,ch){S.excl[S.products[i]]=!ch;save();render()}
+function setInit(i,v){S.init[S.products[i]]=num(v);save();render()}
+function setGoal(i,v){S.goal[S.products[i]]=num(v);save();render()}
+function setNom(k,f,v){S.nom[k]=S.nom[k]||{};S.nom[k][f]=num(v);save();render()}
+function addP(){const v=document.getElementById('np').value.trim();if(v&&!S.products.includes(v)){S.products.push(v);save();render()}}
+function delP(i){S.products.splice(i,1);save();render()}
+const nav=(t,a,b)=>`<div class="nav"><button onclick="${a}">‹</button><b>${t}</b><button onclick="${b}">›</button></div>`;
+function agg(p){let put=0,yy=0;for(const q in S.rep){const v=S.rep[q][p]||0;put+=v;if(q.startsWith(Y+'-'))yy+=v}
+ const ini=S.init[p]||0,all=put+ini,val=S.val[p]||0;return{all,yy,val,ini,cur:val||all}}
+function ingR(){let t=0;for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k];if(x&&x.n&&S.products.some(p=>((S.rep[k]||{})[p]||0)>0))t+=x.n}return t}
+function nomYear(){let n=0,c=0;for(let m=0;m<12;m++){const x=S.nom[key(Y,m)]||{};n+=x.n||0;if(x.n)c++}return{n,c}}
+function gastosYear(){let tot=0,c=0;for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k];if(!x||!x.n)continue;const disp=x.n||0,rep=S.products.reduce((a,p)=>a+((S.rep[k]||{})[p]||0),0);if(rep<=0)continue;tot+=Math.max(0,disp-rep);c++}return{tot,media:c?tot/c:0,c}}
+function chart(){
+ const tot=m=>S.products.reduce((a,p)=>a+((S.rep[key(Y,m)]||{})[p]||0),0);
+ const mx=Math.max(1,...Array.from({length:12},(_,m)=>tot(m)));
+ let s='<svg viewBox="0 0 340 145" width="100%">';
+ for(let m=0;m<12;m++){let y=120;const r=S.rep[key(Y,m)]||{};
+  S.products.forEach(p=>{const h=(r[p]||0)/mx*105;if(h>0){y-=h;s+=`<rect x="${12+m*27}" y="${y}" width="19" height="${h}" rx="3" fill="${col(p)}"/>`}});
+  s+=`<text x="${21.5+m*27}" y="136" font-size="9" text-anchor="middle" fill="var(--mu)">${M[m][0]}</text>`}
+ return s+'</svg><div style="font-size:12px;color:var(--mu);text-align:right">Máx. mes: '+eur(mx)+'</div>'}
+function render(){
+ ['res','rep','nom','adj'].forEach((t,i)=>document.getElementById('t'+i).className=tab===t?'on':'');
+ let h='';
+ if(tab==='res'){
+  const A=S.products.map(p=>({p,...agg(p)})),IN=A.filter(x=>!S.excl[x.p]),cap=IN.reduce((a,x)=>a+x.cur,0),yy=IN.reduce((a,x)=>a+x.yy,0),ny=nomYear(),ing=ingR();
+  h+=nav(Y,'yr(-1)','yr(1)');
+  const OUT=A.filter(x=>S.excl[x.p]),capL=OUT.reduce((a,x)=>a+x.cur,0);
+  h+=`<div class="card hero"><small>Capital total</small><div class="big">${eur(cap)}</div><div class="sub"><span>Aportado en ${Y}: <b>${eur(yy)}</b></span><span>Ahorro: <b>${ing?(yy/ing*100).toFixed(0):0}%</b></span></div></div>`;
+  if(OUT.length)h+=`<div class="card" style="padding:14px"><div class="row"><span>🔒 Ahorro a largo plazo (${OUT.map(x=>esc(x.p)).join(', ')})</span><b>${eur(capL)}</b></div></div>`;
+  h+='<h2>Dónde está tu dinero</h2><div class="card" style="padding:14px"><div class="bar">'+IN.map(x=>`<i style="width:${cap?x.cur/cap*100:0}%;background:${col(x.p)}"></i>`).join('')+'</div><div class="leg">'+IN.map(x=>`<span><span class="dot" style="background:${col(x.p)}"></span>${esc(x.p)} ${cap?(x.cur/cap*100).toFixed(0):0}%</span>`).join('')+'</div>'+(A.length>IN.length?`<div style="font-size:12px;color:var(--mu);margin-top:8px">No incluye: ${A.filter(x=>S.excl[x.p]).map(x=>esc(x.p)).join(', ')}</div>`:'')+'</div>';
+  h+='<h2>Aportaciones por mes, '+Y+'</h2><div class="card" style="padding:12px">'+chart()+'</div>';
+  const gy=gastosYear();h+=`<h2>Gastos ordinarios</h2><div class="card"><div class="row"><span>Media mensual estimada${gy.c?' ('+gy.c+(gy.c>1?' meses)':' mes)'):''}</span><b>${gy.c?eur(gy.media):'—'}</b></div><div class="row"><span>Total estimado en ${Y}</span><b>${gy.c?eur(gy.tot):'—'}</b></div></div>`;
+  const G=A.filter(x=>S.goal[x.p]>0);
+  const gt=S.goalT||0,pt=gt?Math.min(100,cap/gt*100):0;
+  h+=`<h2>Objetivo</h2><div class="card">`+(gt?`<div class="pg"><div class="t"><span>Capital total</span><b>${eur(cap)} / ${eur(gt)}</b></div><div class="bar"><i style="width:${pt}%;background:linear-gradient(90deg,#22d3ee,#a78bfa,#f472b6)"></i></div><div style="font-size:12px;color:var(--mu);margin-top:4px">${pt.toFixed(0)}% · faltan ${eur(Math.max(0,gt-cap))}</div></div>`:'')+`<div class="row"><span>Mi objetivo</span><input inputmode="decimal" placeholder="0" value="${gt||''}" onchange="setGT(this.value)"></div></div>`;
+  if(G.length)h+='<h2>Objetivos por producto</h2><div class="card">'+G.map(x=>{const g=S.goal[x.p],pc=Math.min(100,x.cur/g*100);return `<div class="pg"><div class="t"><span><span class="dot" style="background:${col(x.p)}"></span>${esc(x.p)}</span><b>${eur(x.cur)} / ${eur(g)}</b></div><div class="bar"><i style="width:${pc}%;background:${col(x.p)}"></i></div><div style="font-size:12px;color:var(--mu);margin-top:4px">${pc.toFixed(0)}% · faltan ${eur(Math.max(0,g-x.cur))}</div></div>`}).join('')+'</div>';
+ }else if(tab==='rep'){
+  const k=key(Y,Mo),r=S.rep[k]||{},nm=S.nom[k]||{},disp=nm.n||0;
+  const tot=S.products.reduce((a,p)=>a+(r[p]||0),0),dif=disp-tot;
+  h+=nav(MF[Mo]+' '+Y,'mv(-1)','mv(1)');
+  h+=`<div class="card"><div class="row"><span>Nómina neta del mes</span><b>${eur(disp)}</b></div><div class="row"><span>Repartido</span><b>${eur(tot)}</b></div><div class="row"><span>Gasto ordinario estimado</span><b class="${tot>0&&dif<0?'neg':'pos'}">${tot>0?eur(dif):'—'}</b></div></div>`;
+  h+='<h2>Reparto de este mes</h2><div class="card">'+S.products.map((p,i)=>`<div class="row"><span><span class="dot" style="background:${col(p)}"></span>${esc(p)}</span><input inputmode="decimal" placeholder="0" value="${r[p]||''}" onchange="setRep(${i},this.value)"><button class="x" onclick="delP(${i})">✕</button></div>`).join('')+`<div class="row add"><input id="np" placeholder="Nuevo producto"><button onclick="addP()">Añadir</button></div></div>`;
+  h+='<h2>Control por producto</h2>'+S.products.map((p,i)=>{const a=agg(p),g=a.val-a.all;
+   return `<div class="card" style="border-left:5px solid ${col(p)}"><div class="row"><b>${esc(p)}</b></div><div class="row"><span>Contar en capital total</span><input type="checkbox" style="width:auto" ${S.excl[p]?'':'checked'} onchange="setExcl(${i},this.checked)"></div><div class="row"><span>Saldo inicial (antes de la app)</span><input inputmode="decimal" placeholder="0" value="${a.ini||''}" onchange="setInit(${i},this.value)"></div><div class="row"><span>Aportado en total</span><b>${eur(a.all)}</b></div><div class="row"><span>Aportado en ${Y}</span><b>${eur(a.yy)}</b></div><div class="row"><span>Valor actual</span><input inputmode="decimal" placeholder="0" value="${a.val||''}" onchange="setVal(${i},this.value)"></div>`+(a.val?`<div class="row"><span>Ganancia</span><b class="${g<0?'neg':'pos'}">${eur(g)}${a.all?' ('+(g/a.all*100).toFixed(1).replace('.',',')+'%)':''}</b></div>`:'')+`<div class="row"><span>Objetivo</span><input inputmode="decimal" placeholder="0" value="${S.goal[p]||''}" onchange="setGoal(${i},this.value)"></div></div>`}).join('');
+ }else if(tab==='nom'){
+  const ny=nomYear();
+  h+=nav(Y,'yr(-1)','yr(1)');
+  h+=`<div class="card hero"><small>Total ganado en ${Y}</small><div class="big">${eur(ny.n)}</div></div>`;
+  h+=`<div class="card"><div class="row"><span>Media mensual</span><b>${eur(ny.c?ny.n/ny.c:0)}</b></div></div>`;
+  h+='<h2>Mes a mes</h2><div class="card"><div class="g h"><span></span><span>Neto</span></div>';
+  for(let m=0;m<12;m++){const k=key(Y,m),x=S.nom[k]||{};
+   h+=`<div class="g"><b>${M[m]}</b><input inputmode="decimal" placeholder="0" value="${x.n||''}" onchange="setNom('${k}','n',this.value)"></div>`}
+  h+='</div>';
+ }else{
+  h+=`<h2>Copia de seguridad</h2><div class="card" style="padding:14px">`+`<button style="margin:0 8px 8px 0" onclick="expo()">⬇️ Exportar (.json)</button>`+`<button style="margin:0 0 8px" onclick="show()">📋 Copiar datos</button><textarea id="bk" rows="4" placeholder="Para restaurar: pega aquí el texto de tu copia y pulsa Importar" style="width:100%;margin:6px 0 10px;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:12px monospace"></textarea><input type="file" accept=".json,application/json" onchange="impFile(this)" style="width:100%;text-align:left;margin-bottom:10px"><button onclick="imp()">Importar (reemplaza lo actual)</button><div id="bm" style="font-size:13px;color:var(--mu);margin-top:8px"></div></div>`;
+  h+=`<h2>Apariencia</h2><div class="card"><div class="row"><span>Tema</span><button onclick="theme()">Cambiar claro/oscuro</button></div></div>`;
+ }
+ document.getElementById('app').innerHTML=h;
+}
+init();
+</script></body></html>
